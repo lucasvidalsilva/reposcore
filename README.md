@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RepoScore — avaliação exploratória de repositórios
 
-## Getting Started
+Aplicação Next.js que recebe uma URL do GitHub, coleta metadados públicos e produz notas para ideia, README e stack usando Gemini ou uma heurística local.
 
-First, run the development server:
+**Estado:** MVP funcional no código, sem persistência durável, autenticação, testes ou deploy verificado. O ranking vive apenas na memória do processo e é perdido ao reiniciar.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Fluxo
+
+```mermaid
+flowchart LR
+    URL["URL do GitHub"] --> API["API route /api/analyze"]
+    API --> GH["GitHub REST API"]
+    GH --> SCORE["Gemini ou heurística"]
+    SCORE --> MEM["ranking em memória"]
+    MEM --> UI["resultado + ranking"]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O score final usa:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+ideia 40% + README 30% + stack 30%
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Sem `GEMINI_API_KEY`, a aplicação usa regras baseadas em tamanho do README, linguagens, tamanho do repositório, descrição, estrelas e número aproximado de commits.
 
-## Learn More
+## Executar
 
-To learn more about Next.js, take a look at the following resources:
+Pré-requisitos: Node.js e npm.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm ci
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Variáveis opcionais:
 
-## Deploy on Vercel
+```dotenv
+GITHUB_TOKEN=token_server_side_para_aumentar_limite_da_API
+GEMINI_API_KEY=chave_server_side_do_gemini
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Abra `http://localhost:3000` e informe uma URL pública no formato `https://github.com/owner/repo`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## O que é realmente analisado
+
+- metadados do repositório;
+- até 4.000 caracteres do README;
+- bytes por linguagem;
+- tamanho, estrelas, forks e contagem aproximada de commits.
+
+O código não clona nem lê a árvore completa. Portanto a nota não mede qualidade interna, testes, segurança, arquitetura ou correção funcional do projeto.
+
+## Verificações
+
+```bash
+npm run lint
+npm run build
+```
+
+Não há suíte automatizada. Node.js não estava disponível na auditoria local, então build e lint não foram reexecutados.
+
+## Limitações
+
+- avaliações por LLM são subjetivas e podem variar;
+- o fallback favorece volume e popularidade, apesar da proposta de não medir popularidade;
+- a URL aceita sufixos adicionais depois de `owner/repo`, que merecem validação mais estrita;
+- não há rate limiting, cache, timeout explícito ou proteção contra abuso da API;
+- a persistência Supabase citada em `blueprint.md` não foi implementada;
+- não há explicação detalhada ou evidência para justificar cada nota;
+- repositórios privados não são suportados de forma segura.
+
+O projeto deve ser apresentado como experimento de UX e integração de APIs, não como avaliação objetiva do valor de software.
